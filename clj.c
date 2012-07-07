@@ -3,6 +3,16 @@
 #include <assert.h>
 
 
+// Utilities
+
+int is_clj_whitespace(wint_t c) {
+  return iswspace(c) || c == L',';
+}
+
+int is_sign(wint_t c) {
+  return c == L'+' || c == L'-';
+}
+
 int ends_line(wint_t c) {
   return c == L'\n' || c == L'\r';
 }
@@ -46,7 +56,7 @@ wint_t peek_char(struct clj_parser *parser) {
 }
 
 
-// Utilities
+// Read forms
 
 void reader_error(struct clj_parser *parser, enum clj_read_result error) {
   longjmp(parser->_fail, error);
@@ -55,20 +65,9 @@ void reader_error(struct clj_parser *parser, enum clj_read_result error) {
 #define CLJ_NOT_IMPLEMENTED_READ \
   reader_error(parser, CLJ_NOT_IMPLEMENTED);
 
-int is_clj_whitespace(wint_t c) {
-  return iswspace(c) || c == L',';
-}
-
-int is_sign(wint_t c) {
-  return c == L'+' || c == L'-';
-}
-
 int at_number(struct clj_parser *parser, wint_t c) {
   return iswdigit(c) || (is_sign(c) && iswdigit(peek_char(parser)));
 }
-
-
-// Read forms
 
 typedef void (*form_reader)(struct clj_parser *parser);
 
