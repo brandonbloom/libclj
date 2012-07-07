@@ -20,6 +20,9 @@ int emit(const struct clj_node *node) {
 }
 
 int main(int argc, char **argv) {
+  enum clj_read_result result;
+
+  //TODO: Maybe some kind of parser init function? or read_top_level
 
   parser.emit = emit;
   printer.consume = consume;
@@ -29,7 +32,12 @@ int main(int argc, char **argv) {
   printer.putwchar = putwchar;
 
   //TODO: Read forms until end of file
-  clj_read(&parser);
-
-  return 0;
+  result = clj_read(&parser);
+  switch (result) {
+  case 0:
+    return 0;
+  default:
+    fprintf(stderr, "Unknown clj_read_result: %d\n", result);
+  }
+  return 1;
 }
