@@ -53,11 +53,15 @@ struct clj_node {
 };
 
 struct clj_parser {
+  // Read/write
   wint_t (*getwchar)(void);
   int (*emit)(const struct clj_node*);
-  //TODO: int line;
-  //TODO: int column;
+  // Read-only
+  int line;
+  int column;
+  // Private
   wint_t _readback;
+  wint_t _readback_column;
   jmp_buf _fail;
 };
 

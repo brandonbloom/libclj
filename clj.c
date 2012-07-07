@@ -3,10 +3,12 @@
 #include <assert.h>
 
 
-// setjmp/longjmp to emit CLJ_ERROR? maybe? grep stderr and exit(1)
+int ends_line(wint_t c) {
+  return c == L'\n' || c == L'\r';
+}
 
 
-// Pushback reader
+// Position-tracking Pushback Reader
 
 wint_t pop_char(struct clj_parser *parser) {
   wint_t c;
@@ -16,12 +18,25 @@ wint_t pop_char(struct clj_parser *parser) {
     c = parser->_readback;
     parser->_readback = 0;
   }
+  if (ends_line(c)) {
+    parser->line++;
+    parser->_readback_column = parser->column;
+    parser->column = 0;
+  } else {
+    parser->column++;
+  }
   return c;
 }
 
 void push_char(struct clj_parser *parser, wint_t c) {
   assert(parser->_readback == 0);
   parser->_readback = c;
+  if (ends_line(c)) {
+    parser->line--;
+    parser->column = parser->_readback_column;
+  } else {
+    parser->column--;
+  }
 }
 
 wint_t peek_char(struct clj_parser *parser) {
@@ -57,7 +72,7 @@ int at_number(struct clj_parser *parser, wint_t c) {
 
 typedef void (*form_reader)(struct clj_parser *parser);
 
-form_reader macro_reader(wint_t c);
+form_reader get_macro_reader(wint_t c);
 
 void read_string(struct clj_parser *parser) {
   CLJ_NOT_IMPLEMENTED_READ
@@ -82,7 +97,7 @@ void read_comment(struct clj_parser *parser) {
   wint_t c;
   do {
     c = pop_char(parser);
-  } while (c != L'\n' && c != L'\r' && c != WEOF);
+  } while (!ends_line(c) && c != WEOF);
 }
 
 void read_quote(struct clj_parser *parser) {
@@ -179,6 +194,8 @@ void read_form(struct clj_parser *parser) {
 
 enum clj_read_result clj_read(struct clj_parser *parser) {
   enum clj_read_result error;
+  parser->line = 1;
+  parser->column = 0;
   parser->_readback = 0;
   if (!(error = setjmp(parser->_fail))) {
     read_form(parser);
