@@ -44,20 +44,18 @@ struct clj_node {
 
 struct clj_parser {
   wint_t (*getwchar)(void);
+  int (*emit)(const struct clj_node*);
   const wint_t readback;
 };
 
-typedef int (*clj_emit)(const struct clj_node*);
-
-int clj_read(struct clj_parser*, clj_emit);
+int clj_read(struct clj_parser*);
 
 struct clj_printer {
   wint_t (*putwchar)(wchar_t c);
+  int (*consume)(struct clj_node*);
 };
 
-typedef int (*clj_consume)(struct clj_node*);
-
-int clj_print(struct clj_printer*, clj_consume);
+int clj_print(struct clj_printer*);
 
 #ifdef __cplusplus
 }

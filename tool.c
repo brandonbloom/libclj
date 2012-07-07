@@ -15,17 +15,21 @@ int consume(struct clj_node *node) {
 int emit(const struct clj_node *node) {
   printf("emitting: %d\n", node->type);
   current_node = *node;
-  clj_print(&printer, consume);
+  clj_print(&printer);
   return 0;
 }
 
 int main(int argc, char **argv) {
 
+  parser.emit = emit;
+  printer.consume = consume;
+
   // Connect stdin to stdout.
   parser.getwchar = getwchar;
   printer.putwchar = putwchar;
 
-  clj_read(&parser, emit);
+  //TODO: Read forms until end of file
+  clj_read(&parser);
 
   return 0;
 }
