@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
   parser.getwchar = getwchar;
   printer.putwchar = putwchar;
 
-  //TODO: Read forms until end of file
+  //TODO: clj_read reads all forms, but maybe it should read only one?
   result = clj_read(&parser);
   switch (result) {
   case 0:

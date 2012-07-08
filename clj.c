@@ -133,28 +133,55 @@ typedef void (*form_reader)(struct clj_parser *parser);
 
 form_reader get_macro_reader(wint_t c);
 
+int is_macro_terminating(wint_t c) {
+  return c != L'#'
+      && c != L'\''
+      && c != L':'
+      && get_macro_reader(c);
+}
+
 void read_string(struct clj_parser *parser) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
+void read_token(struct clj_parser *parser, enum clj_type type) {
+  wint_t c;
+  struct clj_node node;
+  struct strbuf strbuf;
+  node.type = type;
+  strbuf_init(&strbuf, 40); // grand-foo-bar-frobulator-factory-factory
+  while (1) {
+    c = pop_char(parser);
+    if (WEOF == c || is_clj_whitespace(c) || is_macro_terminating(c)) {
+      push_char(parser, c);
+      node.value = strbuf.chars;
+      parser->emit(&node);
+      strbuf_free(&strbuf);
+      break;
+    } else {
+      strbuf_append(&strbuf, c);
+    }
+  }
+}
+
 void read_keyword(struct clj_parser *parser) {
-  CLJ_NOT_IMPLEMENTED_READ
+  read_token(parser, CLJ_KEYWORD);
 }
 
 void read_symbol(struct clj_parser *parser) {
-  CLJ_NOT_IMPLEMENTED_READ
+  read_token(parser, CLJ_SYMBOL);
 }
 
 void read_number(struct clj_parser *parser) {
   wint_t c;
   struct clj_node node;
   struct strbuf strbuf;
-  strbuf_init(&strbuf, 20); // MAX_LONG string length
+  node.type = CLJ_NUMBER;
+  strbuf_init(&strbuf, 20); // MAX_LONG
   while (1) {
     c = pop_char(parser);
     if (WEOF == c || is_clj_whitespace(c) || get_macro_reader(c)) {
       push_char(parser, c);
-      node.type = CLJ_NUMBER;
       node.value = strbuf.chars;
       parser->emit(&node);
       strbuf_free(&strbuf);
@@ -291,13 +318,17 @@ int clj_print(struct clj_printer *printer) {
   printer->consume(&node);
   switch (node.type) {
 
+    case CLJ_KEYWORD:
+      printer->putwchar(L':');
+      // Intentional fallthrough
     case CLJ_NUMBER:
-      //TODO: Numbers greater than 10!
+    case CLJ_SYMBOL:
       print_string(printer, node.value);
       break;
 
     default:
       fatal("unexpected node type");
   }
+  printer->putwchar(L'\n');
   return 0;
 }

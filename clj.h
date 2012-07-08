@@ -19,23 +19,25 @@ enum clj_read_result {
 //  const wchar_t *name;
 //};
 
+enum clj_type {
+  CLJ_ERROR = -1,
+  // Atomic values
+  CLJ_NUMBER = 1,
+  CLJ_CHARACTER,
+  CLJ_STRING,
+  CLJ_KEYWORD,
+  CLJ_SYMBOL,
+  // Push collection
+  CLJ_MAP,
+  CLJ_LIST,
+  CLJ_SET,
+  CLJ_VECTOR,
+  // Pop collection
+  CLJ_END,
+};
+
 struct clj_node {
-  enum {
-    CLJ_ERROR = -1,
-    // Atomic values
-    CLJ_NUMBER = 1,
-    CLJ_CHARACTER,
-    CLJ_STRING,
-    CLJ_KEYWORD,
-    CLJ_SYMBOL,
-    // Push collection
-    CLJ_MAP,
-    CLJ_LIST,
-    CLJ_SET,
-    CLJ_VECTOR,
-    // Pop collection
-    CLJ_END,
-  } type;
+  enum clj_type type;
   const wchar_t *value;
 };
 
