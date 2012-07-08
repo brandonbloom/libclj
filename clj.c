@@ -223,12 +223,31 @@ clj_Result read_comment(clj_Reader *r, wint_t initch) {
   return ok_read(c);
 }
 
+clj_Result read_wrapped(clj_Reader *r, const wint_t *sym) {
+  clj_Node node;
+  clj_Result result;
+  // Begin list
+  node.type = CLJ_LIST;
+  r->emit(&node);
+  // Invoked form
+  node.type = CLJ_SYMBOL;
+  node.value = sym;
+  r->emit(&node);
+  // Argument
+  result = read_form(r);
+  // End list
+  node.type = CLJ_LIST | CLJ_END;
+  emit_complete(r, &node);
+  return result;
+}
+
 clj_Result read_quote(clj_Reader *r, wint_t initch) {
-  CLJ_NOT_IMPLEMENTED_READ
+  return read_wrapped(r, L"quote");
 }
 
 clj_Result read_deref(clj_Reader *r, wint_t initch) {
-  CLJ_NOT_IMPLEMENTED_READ
+  //TODO: Prepend core namespace
+  return read_wrapped(r, L"deref");
 }
 
 clj_Result read_meta(clj_Reader *r, wint_t initch) {
