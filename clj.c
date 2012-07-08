@@ -146,6 +146,7 @@ int at_number(clj_Reader *r, wint_t c) {
 }
 
 typedef clj_Result (*form_reader)(clj_Reader *r, wint_t initch);
+typedef int (*char_pred)(wint_t c);
 
 form_reader get_macro_reader(wint_t c);
 
@@ -163,16 +164,17 @@ clj_Result read_string(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-clj_Result read_token(clj_Type type, clj_Reader *r, wint_t initch) {
+clj_Result read_token(clj_Type type, clj_Reader *r, wint_t initch,
+                      size_t initial_capacity, char_pred terminates) {
   wint_t c;
   clj_Node node;
   StringBuffer strbuf;
   node.type = type;
-  strbuf_init(&strbuf, 40); // grand-foo-bar-frobulator-factory-factory
+  strbuf_init(&strbuf, initial_capacity);
   strbuf_append(&strbuf, initch);
   while (1) {
     c = pop_char(r);
-    if (WEOF == c || is_clj_whitespace(c) || is_macro_terminating(c)) {
+    if (WEOF == c || is_clj_whitespace(c) || terminates(c)) {
       push_char(r, c);
       node.value = strbuf.chars;
       emit_complete(r, &node);
@@ -186,33 +188,20 @@ clj_Result read_token(clj_Type type, clj_Reader *r, wint_t initch) {
 }
 
 clj_Result read_keyword(clj_Reader *r, wint_t initch) {
-  return read_token(CLJ_KEYWORD, r, initch);
+  return read_token(CLJ_KEYWORD, r, initch,
+                    25, // :some-very-interesting-key
+                    is_macro_terminating);
 }
 
 clj_Result read_symbol(clj_Reader *r, wint_t initch) {
-  return read_token(CLJ_SYMBOL, r, initch);
+  return read_token(CLJ_SYMBOL, r, initch,
+                    40, // grand-foo-bar-frobulator-factory-factory
+                    is_macro_terminating);
 }
 
 clj_Result read_number(clj_Reader *r, wint_t initch) {
-  wint_t c;
-  clj_Node node;
-  StringBuffer strbuf;
-  node.type = CLJ_NUMBER;
-  strbuf_init(&strbuf, 20); // MAX_LONG
-  strbuf_append(&strbuf, initch);
-  while (1) {
-    c = pop_char(r);
-    if (WEOF == c || is_clj_whitespace(c) || get_macro_reader(c)) {
-      push_char(r, c);
-      node.value = strbuf.chars;
-      emit_complete(r, &node);
-      strbuf_free(&strbuf);
-      break;
-    } else {
-      strbuf_append(&strbuf, c);
-    }
-  }
-  return ok_read(c);
+  return read_token(CLJ_NUMBER, r, initch,
+                    20 /* MAX_LONG */, (char_pred)get_macro_reader);
 }
 
 clj_Result read_comment(clj_Reader *r, wint_t initch) {
@@ -309,7 +298,8 @@ clj_Result read_set(clj_Reader *r, wint_t initch) {
 }
 
 clj_Result read_char(clj_Reader *r, wint_t initch) {
-  return read_token(CLJ_CHARACTER, r, initch);
+  return read_token(CLJ_CHARACTER, r, initch,
+                    10 /* \backspace */, is_macro_terminating);
 }
 
 clj_Result read_lambda_arg(clj_Reader *r, wint_t initch) {
