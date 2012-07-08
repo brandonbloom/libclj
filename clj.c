@@ -118,7 +118,7 @@ wint_t peek_char(clj_Reader *r) {
 
 // Read forms
 
-void reader_error(clj_Reader *r, clj_ReadResult error) {
+void reader_error(clj_Reader *r, clj_Result error) {
   longjmp(r->_fail, error);
 }
 
@@ -132,13 +132,14 @@ void emit_complete(clj_Reader *r, clj_Node *n) {
 
 #define CLJ_NOT_IMPLEMENTED_READ \
   fprintf(stderr, "%s not implemented\n", __func__); \
-  reader_error(r, CLJ_NOT_IMPLEMENTED);
+  reader_error(r, CLJ_NOT_IMPLEMENTED); \
+  return 0;
 
 int at_number(clj_Reader *r, wint_t c) {
   return iswdigit(c) || (is_sign(c) && iswdigit(peek_char(r)));
 }
 
-typedef void (*form_reader)(clj_Reader *r, wint_t initch);
+typedef clj_Result (*form_reader)(clj_Reader *r, wint_t initch);
 
 form_reader get_macro_reader(wint_t c);
 
@@ -146,13 +147,17 @@ int is_macro_terminating(wint_t c) {
   return c != L'#' && c != L'\'' && c != L':' && get_macro_reader(c);
 }
 
-void read_form(clj_Reader*);
+clj_Result ok_read(wint_t c) {
+  return (c == WEOF ? CLJ_EOF : CLJ_MORE);
+}
 
-void read_string(clj_Reader *r, wint_t initch) {
+clj_Result read_form(clj_Reader*);
+
+clj_Result read_string(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_token(clj_Type type, clj_Reader *r, wint_t initch) {
+clj_Result read_token(clj_Type type, clj_Reader *r, wint_t initch) {
   wint_t c;
   clj_Node node;
   StringBuffer strbuf;
@@ -171,17 +176,18 @@ void read_token(clj_Type type, clj_Reader *r, wint_t initch) {
       strbuf_append(&strbuf, c);
     }
   }
+  return ok_read(c);
 }
 
-void read_keyword(clj_Reader *r, wint_t initch) {
-  read_token(CLJ_KEYWORD, r, initch);
+clj_Result read_keyword(clj_Reader *r, wint_t initch) {
+  return read_token(CLJ_KEYWORD, r, initch);
 }
 
-void read_symbol(clj_Reader *r, wint_t initch) {
-  read_token(CLJ_SYMBOL, r, initch);
+clj_Result read_symbol(clj_Reader *r, wint_t initch) {
+  return read_token(CLJ_SYMBOL, r, initch);
 }
 
-void read_number(clj_Reader *r, wint_t initch) {
+clj_Result read_number(clj_Reader *r, wint_t initch) {
   wint_t c;
   clj_Node node;
   StringBuffer strbuf;
@@ -200,71 +206,74 @@ void read_number(clj_Reader *r, wint_t initch) {
       strbuf_append(&strbuf, c);
     }
   }
+  return ok_read(c);
 }
 
-void read_comment(clj_Reader *r, wint_t initch) {
+clj_Result read_comment(clj_Reader *r, wint_t initch) {
   wint_t c;
   do {
     c = pop_char(r);
   } while (!ends_line(c) && c != WEOF);
+  return ok_read(c);
 }
 
-void read_quote(clj_Reader *r, wint_t initch) {
+clj_Result read_quote(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_deref(clj_Reader *r, wint_t initch) {
+clj_Result read_deref(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_meta(clj_Reader *r, wint_t initch) {
+clj_Result read_meta(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_syntax_quote(clj_Reader *r, wint_t initch) {
+clj_Result read_syntax_quote(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_unquote(clj_Reader *r, wint_t initch) {
+clj_Result read_unquote(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_unmatched_delimiter(clj_Reader *r, wint_t initch) {
+clj_Result read_unmatched_delimiter(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_delimited(clj_Type type, clj_Reader *r, wint_t terminator) {
+clj_Result read_delimited(clj_Type type, clj_Reader *r, wint_t terminator) {
+  return CLJ_MORE;
 }
 
-void read_list(clj_Reader *r, wint_t initch) {
-  read_delimited(CLJ_LIST, r, L')');
+clj_Result read_list(clj_Reader *r, wint_t initch) {
+  return read_delimited(CLJ_LIST, r, L')');
 }
 
-void read_vector(clj_Reader *r, wint_t initch) {
-  read_delimited(CLJ_VECTOR, r, L']');
+clj_Result read_vector(clj_Reader *r, wint_t initch) {
+  return read_delimited(CLJ_VECTOR, r, L']');
 }
 
-void read_map(clj_Reader *r, wint_t initch) {
-  read_delimited(CLJ_MAP, r, L'}');
+clj_Result read_map(clj_Reader *r, wint_t initch) {
+  return read_delimited(CLJ_MAP, r, L'}');
 }
 
-void read_set(clj_Reader *r, wint_t initch) {
-  read_delimited(CLJ_SET, r, L'}');
+clj_Result read_set(clj_Reader *r, wint_t initch) {
+  return read_delimited(CLJ_SET, r, L'}');
 }
 
-void read_char(clj_Reader *r, wint_t initch) {
+clj_Result read_char(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_lambda_arg(clj_Reader *r, wint_t initch) {
+clj_Result read_lambda_arg(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_dispatch(clj_Reader *r, wint_t initch) {
+clj_Result read_dispatch(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void not_implemented(clj_Reader *r, wint_t initch) {
+clj_Result not_implemented(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
@@ -291,7 +300,8 @@ form_reader get_macro_reader(wint_t c) {
   }
 }
 
-void read_form(clj_Reader *r) {
+clj_Result read_form(clj_Reader *r) {
+  clj_Result result;
   clj_Node node;
   form_reader macro_reader;
   wint_t c;
@@ -299,30 +309,30 @@ void read_form(clj_Reader *r) {
     if (is_clj_whitespace(c)) {
       continue;
     } else if ((macro_reader = get_macro_reader(c))) {
-      macro_reader(r, c);
+      result = macro_reader(r, c);
       if (r->_depth == -1) {
-        break;
+        return result;
       }
     } else if (at_number(r, c)) {
-      read_number(r, c);
-      break;
+      return read_number(r, c);
     } else {
-      read_symbol(r, c);
-      break;
+      return read_symbol(r, c);
     }
   }
+  return CLJ_EOF;
 };
 
-clj_ReadResult clj_read(clj_Reader *r) {
-  clj_ReadResult error;
+clj_Result clj_read(clj_Reader *r) {
+  clj_Result error;
   r->line = 1;
   r->column = 0;
   r->_depth = 0;
   r->_readback = 0;
-  if (!(error = setjmp(r->_fail))) {
-    read_form(r);
+  if ((error = setjmp(r->_fail))) {
+    return error;
+  } else {
+    return read_form(r);
   }
-  return error;
 }
 
 
@@ -347,7 +357,7 @@ void print_node(clj_Printer *p, clj_Node *node) {
     case CLJ_NUMBER:
     case CLJ_SYMBOL:
     case CLJ_KEYWORD:
-      print_string(p, node.value);
+      print_string(p, node->value);
       break;
 
     default:

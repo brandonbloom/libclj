@@ -19,7 +19,7 @@ int emit(const clj_Node *node) {
 }
 
 int main(int argc, char **argv) {
-  clj_ReadResult result;
+  clj_Result result;
 
   reader.emit = emit;
   printer.consume = consume;
@@ -28,14 +28,18 @@ int main(int argc, char **argv) {
   reader.getwchar = getwchar;
   printer.putwchar = putwchar;
 
-  //TODO: clj_read reads all forms, but maybe it should read only one?
-  result = clj_read(&reader);
-  switch (result) {
-  case 0:
-    return EXIT_SUCCESS;
-  default:
-    fprintf(stderr, "ERROR: clj_read_result:%d at (%d:%d)\n",
-        result, reader.line, reader.column);
+  // Read all forms.
+  while (1) {
+    result = clj_read(&reader);
+    switch (result) {
+    case CLJ_MORE:
+      break;
+    case CLJ_EOF:
+      return EXIT_SUCCESS;
+    default:
+      fprintf(stderr, "ERROR: clj_read_result:%d at (%d:%d)\n",
+          result, reader.line, reader.column);
+      return EXIT_FAILURE;
+    }
   }
-  return EXIT_FAILURE;
 }

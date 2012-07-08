@@ -8,11 +8,12 @@
 extern "C" {
 #endif
 
-typedef enum clj_read_result {
-  CLJ_SUCCESS = 0,
+typedef enum clj_result {
+  CLJ_EOF = 1,
+  CLJ_MORE,
   CLJ_UNMATCHED_DELIMITER,
   CLJ_NOT_IMPLEMENTED,
-} clj_ReadResult;
+} clj_Result;
 
 //typedef struct clj_named {
 //  const wchar_t *ns;
@@ -55,7 +56,7 @@ typedef struct clj_reader {
   jmp_buf _fail;
 } clj_Reader;
 
-clj_ReadResult clj_read(clj_Reader*);
+clj_Result clj_read(clj_Reader*);
 
 typedef struct clj_printer {
   wint_t (*putwchar)(wchar_t c);
