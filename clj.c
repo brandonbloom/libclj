@@ -338,8 +338,37 @@ clj_Result read_lambda_arg(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-clj_Result read_dispatch(clj_Reader *r, wint_t initch) {
+clj_Result read_unreadable(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
+}
+
+clj_Result read_regex(clj_Reader *r, wint_t initch) {
+  CLJ_NOT_IMPLEMENTED_READ
+}
+
+clj_Result read_discard(clj_Reader *r, wint_t initch) {
+  CLJ_NOT_IMPLEMENTED_READ
+}
+
+form_reader get_dispatch_reader(wint_t c) {
+  switch (c) {
+    case L'{': return read_set;
+    case L'<': return read_unreadable;
+    case L'"': return read_regex;
+    case L'!': return read_comment;
+    case L'_': return read_discard;
+    default:   return 0;
+  }
+}
+
+clj_Result read_dispatch(clj_Reader *r, wint_t initch) {
+  form_reader dispatch_reader;
+  wint_t c = pop_char(r);
+  if ((dispatch_reader = get_dispatch_reader(c))) {
+    return dispatch_reader(r, c);
+  } else {
+    assert(0); //TODO tagged types and unknown dispatch macros
+  }
 }
 
 form_reader get_macro_reader(wint_t c) {
