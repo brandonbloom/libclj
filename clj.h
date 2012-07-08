@@ -8,18 +8,18 @@
 extern "C" {
 #endif
 
-enum clj_read_result {
+typedef enum clj_read_result {
   CLJ_SUCCESS = 0,
   CLJ_UNMATCHED_DELIMITER,
   CLJ_NOT_IMPLEMENTED,
-};
+} clj_ReadResult;
 
-//struct clj_named {
+//typedef struct clj_named {
 //  const wchar_t *ns;
 //  const wchar_t *name;
-//};
+//} clj_Named;
 
-enum clj_type {
+typedef enum clj_type {
   CLJ_ERROR = -1,
   // Atomic values
   CLJ_NUMBER = 1,
@@ -34,17 +34,17 @@ enum clj_type {
   CLJ_VECTOR,
   // Pop collection
   CLJ_END,
-};
+} clj_Type;
 
-struct clj_node {
-  enum clj_type type;
+typedef struct clj_node {
+  clj_Type type;
   const wchar_t *value;
-};
+} clj_Node;
 
-struct clj_parser {
+typedef struct clj_reader {
   // Read/write
   wint_t (*getwchar)(void);
-  int (*emit)(const struct clj_node*);
+  int (*emit)(const clj_Node*);
   // Read-only
   int line;
   int column;
@@ -52,16 +52,16 @@ struct clj_parser {
   wint_t _readback;
   wint_t _readback_column;
   jmp_buf _fail;
-};
+} clj_Reader;
 
-enum clj_read_result clj_read(struct clj_parser*);
+clj_ReadResult clj_read(clj_Reader*);
 
-struct clj_printer {
+typedef struct clj_printer {
   wint_t (*putwchar)(wchar_t c);
-  int (*consume)(struct clj_node*);
-};
+  int (*consume)(clj_Node*);
+} clj_Printer;
 
-int clj_print(struct clj_printer*);
+int clj_print(clj_Printer*);
 
 #ifdef __cplusplus
 }

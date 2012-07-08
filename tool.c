@@ -3,39 +3,39 @@
 #include "clj.h"
 #include <stdlib.h>
 
-struct clj_parser parser;
-struct clj_printer printer;
-struct clj_node current_node;
+clj_Reader reader;
+clj_Printer printer;
+clj_Node current_node;
 
-int consume(struct clj_node *node) {
+int consume(clj_Node *node) {
   *node = current_node;
   return 0;
 }
 
-int emit(const struct clj_node *node) {
+int emit(const clj_Node *node) {
   current_node = *node;
   clj_print(&printer);
   return 0;
 }
 
 int main(int argc, char **argv) {
-  enum clj_read_result result;
+  clj_ReadResult result;
 
-  parser.emit = emit;
+  reader.emit = emit;
   printer.consume = consume;
 
   // Connect stdin to stdout.
-  parser.getwchar = getwchar;
+  reader.getwchar = getwchar;
   printer.putwchar = putwchar;
 
   //TODO: clj_read reads all forms, but maybe it should read only one?
-  result = clj_read(&parser);
+  result = clj_read(&reader);
   switch (result) {
   case 0:
     return EXIT_SUCCESS;
   default:
     fprintf(stderr, "ERROR: clj_read_result:%d at (%d:%d)\n",
-        result, parser.line, parser.column);
+        result, reader.line, reader.column);
   }
   return EXIT_FAILURE;
 }

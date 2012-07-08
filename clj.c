@@ -31,25 +31,25 @@ void *xrealloc(void *ptr, size_t size)
 
 // String Buffer
 
-struct strbuf {
+typedef struct string_buffer {
   wchar_t *chars;
   int length;
   int capacity;
-};
+} StringBuffer;
 
-void strbuf_init(struct strbuf *strbuf, int capacity) {
+void strbuf_init(StringBuffer *strbuf, int capacity) {
   strbuf->chars = xmalloc(sizeof(wchar_t) * (capacity + 1));
   strbuf->chars[0] = L'\0';
   strbuf->length = 0;
   strbuf->capacity = capacity;
 }
 
-void strbuf_resize(struct strbuf *strbuf, int capacity) {
+void strbuf_resize(StringBuffer *strbuf, int capacity) {
   strbuf->chars = xrealloc(strbuf->chars, sizeof(wchar_t) * (capacity + 1));
   strbuf->capacity = capacity;
 }
 
-void strbuf_append(struct strbuf *strbuf, wchar_t c) {
+void strbuf_append(StringBuffer *strbuf, wchar_t c) {
   if (strbuf->length == strbuf->capacity) {
     strbuf_resize(strbuf, strbuf->capacity * 2);
   }
@@ -58,7 +58,7 @@ void strbuf_append(struct strbuf *strbuf, wchar_t c) {
   strbuf->chars[strbuf->length] = L'\0';
 }
 
-void strbuf_free(struct strbuf *strbuf) {
+void strbuf_free(StringBuffer *strbuf) {
   free(strbuf->chars);
 };
 
@@ -80,56 +80,56 @@ int ends_line(wint_t c) {
 
 // Position-tracking Pushback Reader
 
-wint_t pop_char(struct clj_parser *parser) {
+wint_t pop_char(clj_Reader *r) {
   wint_t c;
-  if (parser->_readback == 0) {
-    c = parser->getwchar();
+  if (r->_readback == 0) {
+    c = r->getwchar();
   } else {
-    c = parser->_readback;
-    parser->_readback = 0;
+    c = r->_readback;
+    r->_readback = 0;
   }
   if (ends_line(c)) {
-    parser->line++;
-    parser->_readback_column = parser->column;
-    parser->column = 0;
+    r->line++;
+    r->_readback_column = r->column;
+    r->column = 0;
   } else {
-    parser->column++;
+    r->column++;
   }
   return c;
 }
 
-void push_char(struct clj_parser *parser, wint_t c) {
-  assert(parser->_readback == 0);
-  parser->_readback = c;
+void push_char(clj_Reader *r, wint_t c) {
+  assert(r->_readback == 0);
+  r->_readback = c;
   if (ends_line(c)) {
-    parser->line--;
-    parser->column = parser->_readback_column;
+    r->line--;
+    r->column = r->_readback_column;
   } else {
-    parser->column--;
+    r->column--;
   }
 }
 
-wint_t peek_char(struct clj_parser *parser) {
-  wchar_t c = pop_char(parser);
-  push_char(parser, c);
+wint_t peek_char(clj_Reader *r) {
+  wchar_t c = pop_char(r);
+  push_char(r, c);
   return c;
 }
 
 
 // Read forms
 
-void reader_error(struct clj_parser *parser, enum clj_read_result error) {
-  longjmp(parser->_fail, error);
+void reader_error(clj_Reader *r, clj_ReadResult error) {
+  longjmp(r->_fail, error);
 }
 
 #define CLJ_NOT_IMPLEMENTED_READ \
-  reader_error(parser, CLJ_NOT_IMPLEMENTED);
+  reader_error(r, CLJ_NOT_IMPLEMENTED);
 
-int at_number(struct clj_parser *parser, wint_t c) {
-  return iswdigit(c) || (is_sign(c) && iswdigit(peek_char(parser)));
+int at_number(clj_Reader *r, wint_t c) {
+  return iswdigit(c) || (is_sign(c) && iswdigit(peek_char(r)));
 }
 
-typedef void (*form_reader)(struct clj_parser *parser);
+typedef void (*form_reader)(clj_Reader *r);
 
 form_reader get_macro_reader(wint_t c);
 
@@ -140,22 +140,22 @@ int is_macro_terminating(wint_t c) {
       && get_macro_reader(c);
 }
 
-void read_string(struct clj_parser *parser) {
+void read_string(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_token(struct clj_parser *parser, enum clj_type type) {
+void read_token(clj_Reader *r, clj_Type type) {
   wint_t c;
-  struct clj_node node;
-  struct strbuf strbuf;
+  clj_Node node;
+  StringBuffer strbuf;
   node.type = type;
   strbuf_init(&strbuf, 40); // grand-foo-bar-frobulator-factory-factory
   while (1) {
-    c = pop_char(parser);
+    c = pop_char(r);
     if (WEOF == c || is_clj_whitespace(c) || is_macro_terminating(c)) {
-      push_char(parser, c);
+      push_char(r, c);
       node.value = strbuf.chars;
-      parser->emit(&node);
+      r->emit(&node);
       strbuf_free(&strbuf);
       break;
     } else {
@@ -164,26 +164,26 @@ void read_token(struct clj_parser *parser, enum clj_type type) {
   }
 }
 
-void read_keyword(struct clj_parser *parser) {
-  read_token(parser, CLJ_KEYWORD);
+void read_keyword(clj_Reader *r) {
+  read_token(r, CLJ_KEYWORD);
 }
 
-void read_symbol(struct clj_parser *parser) {
-  read_token(parser, CLJ_SYMBOL);
+void read_symbol(clj_Reader *r) {
+  read_token(r, CLJ_SYMBOL);
 }
 
-void read_number(struct clj_parser *parser) {
+void read_number(clj_Reader *r) {
   wint_t c;
-  struct clj_node node;
-  struct strbuf strbuf;
+  clj_Node node;
+  StringBuffer strbuf;
   node.type = CLJ_NUMBER;
   strbuf_init(&strbuf, 20); // MAX_LONG
   while (1) {
-    c = pop_char(parser);
+    c = pop_char(r);
     if (WEOF == c || is_clj_whitespace(c) || get_macro_reader(c)) {
-      push_char(parser, c);
+      push_char(r, c);
       node.value = strbuf.chars;
-      parser->emit(&node);
+      r->emit(&node);
       strbuf_free(&strbuf);
       break;
     } else {
@@ -192,62 +192,62 @@ void read_number(struct clj_parser *parser) {
   }
 }
 
-void read_comment(struct clj_parser *parser) {
+void read_comment(clj_Reader *r) {
   wint_t c;
   do {
-    c = pop_char(parser);
+    c = pop_char(r);
   } while (!ends_line(c) && c != WEOF);
 }
 
-void read_quote(struct clj_parser *parser) {
+void read_quote(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_deref(struct clj_parser *parser) {
+void read_deref(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_meta(struct clj_parser *parser) {
+void read_meta(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_syntax_quote(struct clj_parser *parser) {
+void read_syntax_quote(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_unquote(struct clj_parser *parser) {
+void read_unquote(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_list(struct clj_parser *parser) {
+void read_list(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_unmatched_delimiter(struct clj_parser *parser) {
+void read_unmatched_delimiter(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_vector(struct clj_parser *parser) {
+void read_vector(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_map(struct clj_parser *parser) {
+void read_map(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_char(struct clj_parser *parser) {
+void read_char(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_lambda_arg(struct clj_parser *parser) {
+void read_lambda_arg(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_dispatch(struct clj_parser *parser) {
+void read_dispatch(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void not_implemented(struct clj_parser *parser) {
+void not_implemented(clj_Reader *r) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
@@ -274,32 +274,32 @@ form_reader get_macro_reader(wint_t c) {
   }
 }
 
-void read_form(struct clj_parser *parser) {
-  struct clj_node node;
+void read_form(clj_Reader *r) {
+  clj_Node node;
   form_reader macro_reader;
   wint_t c;
-  while (WEOF != (c = pop_char(parser))) {
+  while (WEOF != (c = pop_char(r))) {
     if (is_clj_whitespace(c)) {
       // ignored
     } else if ((macro_reader = get_macro_reader(c))) {
-      macro_reader(parser);
-    } else if (at_number(parser, c)) {
-      push_char(parser, c);
-      read_number(parser);
+      macro_reader(r);
+    } else if (at_number(r, c)) {
+      push_char(r, c);
+      read_number(r);
     } else {
-      push_char(parser, c);
-      read_symbol(parser);
+      push_char(r, c);
+      read_symbol(r);
     }
   }
 };
 
-enum clj_read_result clj_read(struct clj_parser *parser) {
-  enum clj_read_result error;
-  parser->line = 1;
-  parser->column = 0;
-  parser->_readback = 0;
-  if (!(error = setjmp(parser->_fail))) {
-    read_form(parser);
+clj_ReadResult clj_read(clj_Reader *r) {
+  clj_ReadResult error;
+  r->line = 1;
+  r->column = 0;
+  r->_readback = 0;
+  if (!(error = setjmp(r->_fail))) {
+    read_form(r);
   }
   return error;
 }
@@ -307,14 +307,14 @@ enum clj_read_result clj_read(struct clj_parser *parser) {
 
 // Print forms
 
-void print_string(struct clj_printer *printer, const wchar_t *s) {
+void print_string(clj_Printer *printer, const wchar_t *s) {
   for (const wchar_t *i = s; *i != L'\0'; i++) {
     printer->putwchar(*i);
   };
 }
 
-int clj_print(struct clj_printer *printer) {
-  struct clj_node node;
+int clj_print(clj_Printer *printer) {
+  clj_Node node;
   printer->consume(&node);
   switch (node.type) {
 
