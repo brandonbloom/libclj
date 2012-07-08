@@ -14,18 +14,16 @@ enum clj_read_result {
   CLJ_NOT_IMPLEMENTED,
 };
 
-struct clj_named {
-  const wchar_t *ns;
-  const wchar_t *name;
-};
+//struct clj_named {
+//  const wchar_t *ns;
+//  const wchar_t *name;
+//};
 
 struct clj_node {
   enum {
     CLJ_ERROR = -1,
     // Atomic values
-    CLJ_INTEGER = 1,
-    CLJ_RATIO,
-    CLJ_FLOATING,
+    CLJ_NUMBER = 1,
     CLJ_CHARACTER,
     CLJ_STRING,
     CLJ_KEYWORD,
@@ -38,18 +36,7 @@ struct clj_node {
     // Pop collection
     CLJ_END,
   } type;
-  union {
-    long integer;
-    struct {
-      long numerator;
-      long denominator;
-    } ratio;
-    double floating;
-    wint_t character;
-    const wchar_t *string;
-    struct clj_named keyword;
-    struct clj_named symbol;
-  } value;
+  const wchar_t *value;
 };
 
 struct clj_parser {

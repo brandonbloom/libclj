@@ -3,7 +3,67 @@
 #include <assert.h>
 
 
-// Utilities
+// Core Utilities
+
+void fatal(char *msg) {
+  fprintf(stderr, "%s\n", msg);
+  exit(EXIT_FAILURE);
+}
+
+void *xmalloc(size_t size)
+{
+  void *value = malloc(size);
+  if (value == 0) {
+    fatal("virtual memory exhausted");
+  }
+  return value;
+}
+
+void *xrealloc(void *ptr, size_t size)
+{
+  void *value = realloc(ptr, size);
+  if (value == 0) {
+    fatal("virtual memory exhausted");
+  }
+  return value;
+}
+
+
+// String Buffer
+
+struct strbuf {
+  wchar_t *chars;
+  int length;
+  int capacity;
+};
+
+void strbuf_init(struct strbuf *strbuf, int capacity) {
+  strbuf->chars = xmalloc(sizeof(wchar_t) * (capacity + 1));
+  strbuf->chars[0] = L'\0';
+  strbuf->length = 0;
+  strbuf->capacity = capacity;
+}
+
+void strbuf_resize(struct strbuf *strbuf, int capacity) {
+  strbuf->chars = xrealloc(strbuf->chars, sizeof(wchar_t) * (capacity + 1));
+  strbuf->capacity = capacity;
+}
+
+void strbuf_append(struct strbuf *strbuf, wchar_t c) {
+  if (strbuf->length == strbuf->capacity) {
+    strbuf_resize(strbuf, strbuf->capacity * 2);
+  }
+  strbuf->chars[strbuf->length] = c;
+  strbuf->length++;
+  strbuf->chars[strbuf->length] = L'\0';
+}
+
+void strbuf_free(struct strbuf *strbuf) {
+  free(strbuf->chars);
+};
+
+
+// Character classification
 
 int is_clj_whitespace(wint_t c) {
   return iswspace(c) || c == L',';
@@ -86,10 +146,23 @@ void read_symbol(struct clj_parser *parser) {
 }
 
 void read_number(struct clj_parser *parser) {
-  CLJ_NOT_IMPLEMENTED_READ
-  //node.type = CLJ_INTEGER;
-  //node.value.integer = 5;
-  //parse->emit(&node);
+  wint_t c;
+  struct clj_node node;
+  struct strbuf strbuf;
+  strbuf_init(&strbuf, 20); // MAX_LONG string length
+  while (1) {
+    c = pop_char(parser);
+    if (WEOF == c || is_clj_whitespace(c) || get_macro_reader(c)) {
+      push_char(parser, c);
+      node.type = CLJ_NUMBER;
+      node.value = strbuf.chars;
+      parser->emit(&node);
+      strbuf_free(&strbuf);
+      break;
+    } else {
+      strbuf_append(&strbuf, c);
+    }
+  }
 }
 
 void read_comment(struct clj_parser *parser) {
@@ -184,8 +257,10 @@ void read_form(struct clj_parser *parser) {
     } else if ((macro_reader = get_macro_reader(c))) {
       macro_reader(parser);
     } else if (at_number(parser, c)) {
+      push_char(parser, c);
       read_number(parser);
     } else {
+      push_char(parser, c);
       read_symbol(parser);
     }
   }
@@ -205,20 +280,24 @@ enum clj_read_result clj_read(struct clj_parser *parser) {
 
 // Print forms
 
+void print_string(struct clj_printer *printer, const wchar_t *s) {
+  for (const wchar_t *i = s; *i != L'\0'; i++) {
+    printer->putwchar(*i);
+  };
+}
+
 int clj_print(struct clj_printer *printer) {
   struct clj_node node;
   printer->consume(&node);
   switch (node.type) {
 
-    case CLJ_INTEGER:
+    case CLJ_NUMBER:
       //TODO: Numbers greater than 10!
-      printer->putwchar(L'0' + node.value.integer % 10);
+      print_string(printer, node.value);
       break;
 
     default:
-      //TODO: return error, don't print
-      fprintf(stderr, "Unexpected node type: %d\n", node.type);
-      exit(1);
+      fatal("unexpected node type");
   }
   return 0;
 }

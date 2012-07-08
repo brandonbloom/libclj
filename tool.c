@@ -32,10 +32,10 @@ int main(int argc, char **argv) {
   result = clj_read(&parser);
   switch (result) {
   case 0:
-    return 0;
+    return EXIT_SUCCESS;
   default:
     fprintf(stderr, "ERROR: clj_read_result:%d at (%d:%d)\n",
         result, parser.line, parser.column);
   }
-  return 1;
+  return EXIT_FAILURE;
 }
