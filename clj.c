@@ -122,7 +122,16 @@ void reader_error(clj_Reader *r, clj_ReadResult error) {
   longjmp(r->_fail, error);
 }
 
+// Emits a node which demarks a complete object (ie. not a begin bracket)
+void emit_complete(clj_Reader *r, clj_Node *n) {
+  r->emit(n);
+  if (r->_depth == 0) {
+    r->_depth = -1;
+  }
+}
+
 #define CLJ_NOT_IMPLEMENTED_READ \
+  fprintf(stderr, "%s not implemented\n", __func__); \
   reader_error(r, CLJ_NOT_IMPLEMENTED);
 
 int at_number(clj_Reader *r, wint_t c) {
@@ -134,11 +143,10 @@ typedef void (*form_reader)(clj_Reader *r, wint_t initch);
 form_reader get_macro_reader(wint_t c);
 
 int is_macro_terminating(wint_t c) {
-  return c != L'#'
-      && c != L'\''
-      && c != L':'
-      && get_macro_reader(c);
+  return c != L'#' && c != L'\'' && c != L':' && get_macro_reader(c);
 }
+
+void read_form(clj_Reader*);
 
 void read_string(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
@@ -156,7 +164,7 @@ void read_token(clj_Type type, clj_Reader *r, wint_t initch) {
     if (WEOF == c || is_clj_whitespace(c) || is_macro_terminating(c)) {
       push_char(r, c);
       node.value = strbuf.chars;
-      r->emit(&node);
+      emit_complete(r, &node);
       strbuf_free(&strbuf);
       break;
     } else {
@@ -185,7 +193,7 @@ void read_number(clj_Reader *r, wint_t initch) {
     if (WEOF == c || is_clj_whitespace(c) || get_macro_reader(c)) {
       push_char(r, c);
       node.value = strbuf.chars;
-      r->emit(&node);
+      emit_complete(r, &node);
       strbuf_free(&strbuf);
       break;
     } else {
@@ -289,13 +297,18 @@ void read_form(clj_Reader *r) {
   wint_t c;
   while (WEOF != (c = pop_char(r))) {
     if (is_clj_whitespace(c)) {
-      // ignored
+      continue;
     } else if ((macro_reader = get_macro_reader(c))) {
       macro_reader(r, c);
+      if (r->_depth == -1) {
+        break;
+      }
     } else if (at_number(r, c)) {
       read_number(r, c);
+      break;
     } else {
       read_symbol(r, c);
+      break;
     }
   }
 };
@@ -304,6 +317,7 @@ clj_ReadResult clj_read(clj_Reader *r) {
   clj_ReadResult error;
   r->line = 1;
   r->column = 0;
+  r->_depth = 0;
   r->_readback = 0;
   if (!(error = setjmp(r->_fail))) {
     read_form(r);
@@ -313,6 +327,8 @@ clj_ReadResult clj_read(clj_Reader *r) {
 
 
 // Print forms
+
+void print_node(clj_Printer*, clj_Node*);
 
 void print_string(clj_Printer *p, const wchar_t *s) {
   for (const wchar_t *i = s; *i != L'\0'; i++) {
@@ -325,10 +341,8 @@ void print_delimited(clj_Printer *p, const wchar_t *begin, wint_t end) {
   //p->putwchar(end);
 }
 
-int clj_print(clj_Printer *p) {
-  clj_Node node;
-  p->consume(&node);
-  switch (node.type) {
+void print_node(clj_Printer *p, clj_Node *node) {
+  switch (node->type) {
 
     case CLJ_NUMBER:
     case CLJ_SYMBOL:
@@ -340,5 +354,11 @@ int clj_print(clj_Printer *p) {
       fatal("unexpected node type");
   }
   p->putwchar(L'\n');
+}
+
+int clj_print(clj_Printer *p) {
+  clj_Node node;
+  p->consume(&node);
+  print_node(p, &node);
   return 0;
 }

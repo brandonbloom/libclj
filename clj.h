@@ -49,6 +49,7 @@ typedef struct clj_reader {
   int line;
   int column;
   // Private
+  int _depth; // composite type nesting depth, but uses -1 as "got a top-level"
   wint_t _readback;
   wint_t _readback_column;
   jmp_buf _fail;
@@ -59,6 +60,7 @@ clj_ReadResult clj_read(clj_Reader*);
 typedef struct clj_printer {
   wint_t (*putwchar)(wchar_t c);
   int (*consume)(clj_Node*);
+  //TODO: line/column/depth
 } clj_Printer;
 
 int clj_print(clj_Printer*);
