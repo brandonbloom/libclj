@@ -27,9 +27,13 @@ int main(int argc, char **argv) {
       break;
     case CLJ_EOF:
       return EXIT_SUCCESS;
+    case CLJ_UNMATCHED_DELIMITER:
+      fprintf(stderr, "ERROR: unmatched delimiter at line %d, column %d\n",
+              reader.line, reader.column);
+      return EXIT_FAILURE;
     default:
-      fprintf(stderr, "ERROR: clj_read_result:%d at (%d:%d)\n",
-          result, reader.line, reader.column);
+      fprintf(stderr, "ERROR: clj_read_result:%d at line %d, column %d\n",
+              result, reader.line, reader.column);
       return EXIT_FAILURE;
     }
   }

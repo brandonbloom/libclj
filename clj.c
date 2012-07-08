@@ -263,7 +263,8 @@ clj_Result read_unquote(clj_Reader *r, wint_t initch) {
 }
 
 clj_Result read_unmatched_delimiter(clj_Reader *r, wint_t initch) {
-  CLJ_NOT_IMPLEMENTED_READ
+  reader_error(r, CLJ_UNMATCHED_DELIMITER);
+  return 0;
 }
 
 clj_Result read_delimited(clj_Type type, clj_Reader *r, wint_t terminator) {
