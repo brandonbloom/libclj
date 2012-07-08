@@ -23,18 +23,18 @@ typedef enum clj_result {
 typedef enum clj_type {
   CLJ_ERROR = -1,
   // Atomic values
-  CLJ_NUMBER = 1,
-  CLJ_CHARACTER,
-  CLJ_STRING,
-  CLJ_KEYWORD,
-  CLJ_SYMBOL,
-  // Push collection
-  CLJ_MAP,
-  CLJ_LIST,
-  CLJ_SET,
-  CLJ_VECTOR,
-  // Pop collection
-  CLJ_END,
+  CLJ_NUMBER    = 0x01,
+  CLJ_CHARACTER = 0x02,
+  CLJ_STRING    = 0x03,
+  CLJ_KEYWORD   = 0x04,
+  CLJ_SYMBOL    = 0x05,
+  // Composites
+  CLJ_MAP        = 0x010,
+  CLJ_LIST       = 0x020,
+  CLJ_SET        = 0x030,
+  CLJ_VECTOR     = 0x040,
+  // Pop collection bit flag
+  CLJ_END        = 0x100,
 } clj_Type;
 
 typedef struct clj_node {
@@ -45,7 +45,7 @@ typedef struct clj_node {
 typedef struct clj_reader {
   // Read/write
   wint_t (*getwchar)(void);
-  int (*emit)(const clj_Node*);
+  void (*emit)(const clj_Node*);
   // Read-only
   int line;
   int column;
@@ -60,11 +60,10 @@ clj_Result clj_read(clj_Reader*);
 
 typedef struct clj_printer {
   wint_t (*putwchar)(wchar_t c);
-  int (*consume)(clj_Node*);
   //TODO: line/column/depth
 } clj_Printer;
 
-int clj_print(clj_Printer*);
+void clj_print(clj_Printer*, const clj_Node*);
 
 #ifdef __cplusplus
 }

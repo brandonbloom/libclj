@@ -135,6 +135,12 @@ void emit_complete(clj_Reader *r, clj_Node *n) {
   reader_error(r, CLJ_NOT_IMPLEMENTED); \
   return 0;
 
+wint_t skip_whitespace(clj_Reader *r) {
+  wint_t c;
+  while (is_clj_whitespace(c = pop_char(r)));
+  return c;
+}
+
 int at_number(clj_Reader *r, wint_t c) {
   return iswdigit(c) || (is_sign(c) && iswdigit(peek_char(r)));
 }
@@ -242,7 +248,26 @@ clj_Result read_unmatched_delimiter(clj_Reader *r, wint_t initch) {
 }
 
 clj_Result read_delimited(clj_Type type, clj_Reader *r, wint_t terminator) {
-  return CLJ_MORE;
+  wint_t c;
+  clj_Node node;
+  form_reader macro_reader;
+  node.type = type;
+  r->emit(&node);
+  r->_depth++;
+  while (1) {
+    c = skip_whitespace(r);
+    if (c == terminator) {
+      node.type = type | CLJ_END;
+      r->_depth--;
+      emit_complete(r, &node);
+      return CLJ_MORE;
+    } else if ((macro_reader = get_macro_reader(c))) {
+      macro_reader(r, c);
+    } else {
+      push_char(r, c);
+      read_form(r);
+    }
+  }
 }
 
 clj_Result read_list(clj_Reader *r, wint_t initch) {
@@ -338,20 +363,13 @@ clj_Result clj_read(clj_Reader *r) {
 
 // Print forms
 
-void print_node(clj_Printer*, clj_Node*);
-
 void print_string(clj_Printer *p, const wchar_t *s) {
   for (const wchar_t *i = s; *i != L'\0'; i++) {
     p->putwchar(*i);
   };
 }
 
-void print_delimited(clj_Printer *p, const wchar_t *begin, wint_t end) {
-  print_string(p, begin);
-  //p->putwchar(end);
-}
-
-void print_node(clj_Printer *p, clj_Node *node) {
+void clj_print(clj_Printer *p, const clj_Node *node) {
   switch (node->type) {
 
     case CLJ_NUMBER:
@@ -360,15 +378,36 @@ void print_node(clj_Printer *p, clj_Node *node) {
       print_string(p, node->value);
       break;
 
+    case CLJ_LIST:
+      p->putwchar(L'(');
+      break;
+    case CLJ_LIST | CLJ_END:
+      p->putwchar(L')');
+      break;
+
+    case CLJ_VECTOR:
+      p->putwchar(L'[');
+      break;
+    case CLJ_VECTOR | CLJ_END:
+      p->putwchar(L']');
+      break;
+
+    case CLJ_MAP:
+      p->putwchar(L'{');
+      break;
+    case CLJ_MAP | CLJ_END:
+      p->putwchar(L'}');
+      break;
+
+    case CLJ_SET:
+      print_string(p, L"#{");
+      break;
+    case CLJ_SET | CLJ_END:
+      p->putwchar(L'}');
+      break;
+
     default:
       fatal("unexpected node type");
   }
   p->putwchar(L'\n');
-}
-
-int clj_print(clj_Printer *p) {
-  clj_Node node;
-  p->consume(&node);
-  print_node(p, &node);
-  return 0;
 }

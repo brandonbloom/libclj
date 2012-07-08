@@ -5,24 +5,15 @@
 
 clj_Reader reader;
 clj_Printer printer;
-clj_Node current_node;
 
-int consume(clj_Node *node) {
-  *node = current_node;
-  return 0;
-}
-
-int emit(const clj_Node *node) {
-  current_node = *node;
-  clj_print(&printer);
-  return 0;
+void emit(const clj_Node *node) {
+  clj_print(&printer, node);
 }
 
 int main(int argc, char **argv) {
   clj_Result result;
 
   reader.emit = emit;
-  printer.consume = consume;
 
   // Connect stdin to stdout.
   reader.getwchar = getwchar;
