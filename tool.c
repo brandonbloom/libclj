@@ -10,6 +10,11 @@ void emit(const clj_Node *node) {
   clj_print(&printer, node);
 }
 
+void print_reader_error(clj_Reader *r, const char *msg) {
+  fprintf(stderr, "ERROR: %s at line %d, column %d\n",
+          msg, reader.line, reader.column);
+}
+
 int main(int argc, char **argv) {
   clj_Result result;
 
@@ -27,14 +32,18 @@ int main(int argc, char **argv) {
       break;
     case CLJ_EOF:
       return EXIT_SUCCESS;
+    case CLJ_UNEXPECTED_EOF:
+      print_reader_error(&reader, "unexpected end of file");
+      break;
     case CLJ_UNMATCHED_DELIMITER:
-      fprintf(stderr, "ERROR: unmatched delimiter at line %d, column %d\n",
-              reader.line, reader.column);
-      return EXIT_FAILURE;
+      print_reader_error(&reader, "unmatched delimiter");
+      break;
+    case CLJ_NOT_IMPLEMENTED:
+      print_reader_error(&reader, "unsupported form");
+      break;
     default:
-      fprintf(stderr, "ERROR: clj_read_result:%d at line %d, column %d\n",
-              result, reader.line, reader.column);
-      return EXIT_FAILURE;
+      print_reader_error(&reader, "unexpected error");
     }
+    return EXIT_FAILURE;
   }
 }

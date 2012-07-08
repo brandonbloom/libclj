@@ -9,10 +9,11 @@ extern "C" {
 #endif
 
 typedef enum clj_result {
-  CLJ_EOF = 1,
-  CLJ_MORE,
-  CLJ_UNMATCHED_DELIMITER,
-  CLJ_NOT_IMPLEMENTED,
+  CLJ_EOF  = 1,
+  CLJ_MORE = 2,
+  CLJ_UNEXPECTED_EOF      = -1,
+  CLJ_UNMATCHED_DELIMITER = -2,
+  CLJ_NOT_IMPLEMENTED     = -3,
 } clj_Result;
 
 //typedef struct clj_named {

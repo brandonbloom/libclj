@@ -283,6 +283,8 @@ clj_Result read_delimited(clj_Type type, clj_Reader *r, wint_t terminator) {
       return CLJ_MORE;
     } else if ((macro_reader = get_macro_reader(c))) {
       macro_reader(r, c);
+    } else if (c == WEOF) {
+      reader_error(r, CLJ_UNEXPECTED_EOF);
     } else {
       push_char(r, c);
       read_form(r);
@@ -363,6 +365,9 @@ clj_Result read_form(clj_Reader *r) {
     } else {
       return read_symbol(r, c);
     }
+  }
+  if (r->_depth > 0) {
+    reader_error(r, CLJ_UNEXPECTED_EOF);
   }
   return CLJ_EOF;
 };
