@@ -161,7 +161,39 @@ clj_Result ok_read(wint_t c) {
 clj_Result read_form(clj_Reader*);
 
 clj_Result read_string(clj_Reader *r, wint_t initch) {
-  CLJ_NOT_IMPLEMENTED_READ
+  wint_t c;
+  clj_Node node;
+  StringBuffer strbuf;
+  int escape = 0;
+  node.type = CLJ_STRING;
+  strbuf_init(&strbuf, 80); // C'mon now, how big is your terminal?
+  strbuf_append(&strbuf, initch);
+  while (1) {
+    c = pop_char(r);
+    switch (c) {
+      case WEOF:
+        strbuf_free(&strbuf);
+        reader_error(r, CLJ_UNEXPECTED_EOF);
+      case L'\\':
+        strbuf_append(&strbuf, c);
+        escape = !escape;
+        break;
+      case L'"':
+        strbuf_append(&strbuf, c);
+        if (escape) {
+          escape = 0;
+          break;
+        } else {
+          node.value = strbuf.chars;
+          emit_complete(r, &node);
+          strbuf_free(&strbuf);
+          return CLJ_MORE;
+        }
+      default:
+        escape = 0;
+        strbuf_append(&strbuf, c);
+    }
+  }
 }
 
 clj_Result read_token(clj_Type type, clj_Reader *r, wint_t initch,
@@ -384,6 +416,7 @@ void clj_print(clj_Printer *p, const clj_Node *node) {
   switch (node->type) {
 
     case CLJ_NUMBER:
+    case CLJ_STRING:
     case CLJ_SYMBOL:
     case CLJ_KEYWORD:
     case CLJ_CHARACTER:
