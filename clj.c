@@ -129,7 +129,7 @@ int at_number(clj_Reader *r, wint_t c) {
   return iswdigit(c) || (is_sign(c) && iswdigit(peek_char(r)));
 }
 
-typedef void (*form_reader)(clj_Reader *r);
+typedef void (*form_reader)(clj_Reader *r, wint_t initch);
 
 form_reader get_macro_reader(wint_t c);
 
@@ -140,16 +140,17 @@ int is_macro_terminating(wint_t c) {
       && get_macro_reader(c);
 }
 
-void read_string(clj_Reader *r) {
+void read_string(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_token(clj_Reader *r, clj_Type type) {
+void read_token(clj_Type type, clj_Reader *r, wint_t initch) {
   wint_t c;
   clj_Node node;
   StringBuffer strbuf;
   node.type = type;
   strbuf_init(&strbuf, 40); // grand-foo-bar-frobulator-factory-factory
+  strbuf_append(&strbuf, initch);
   while (1) {
     c = pop_char(r);
     if (WEOF == c || is_clj_whitespace(c) || is_macro_terminating(c)) {
@@ -164,20 +165,21 @@ void read_token(clj_Reader *r, clj_Type type) {
   }
 }
 
-void read_keyword(clj_Reader *r) {
-  read_token(r, CLJ_KEYWORD);
+void read_keyword(clj_Reader *r, wint_t initch) {
+  read_token(CLJ_KEYWORD, r, initch);
 }
 
-void read_symbol(clj_Reader *r) {
-  read_token(r, CLJ_SYMBOL);
+void read_symbol(clj_Reader *r, wint_t initch) {
+  read_token(CLJ_SYMBOL, r, initch);
 }
 
-void read_number(clj_Reader *r) {
+void read_number(clj_Reader *r, wint_t initch) {
   wint_t c;
   clj_Node node;
   StringBuffer strbuf;
   node.type = CLJ_NUMBER;
   strbuf_init(&strbuf, 20); // MAX_LONG
+  strbuf_append(&strbuf, initch);
   while (1) {
     c = pop_char(r);
     if (WEOF == c || is_clj_whitespace(c) || get_macro_reader(c)) {
@@ -192,62 +194,69 @@ void read_number(clj_Reader *r) {
   }
 }
 
-void read_comment(clj_Reader *r) {
+void read_comment(clj_Reader *r, wint_t initch) {
   wint_t c;
   do {
     c = pop_char(r);
   } while (!ends_line(c) && c != WEOF);
 }
 
-void read_quote(clj_Reader *r) {
+void read_quote(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_deref(clj_Reader *r) {
+void read_deref(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_meta(clj_Reader *r) {
+void read_meta(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_syntax_quote(clj_Reader *r) {
+void read_syntax_quote(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_unquote(clj_Reader *r) {
+void read_unquote(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_list(clj_Reader *r) {
+void read_unmatched_delimiter(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_unmatched_delimiter(clj_Reader *r) {
+void read_delimited(clj_Type type, clj_Reader *r, wint_t terminator) {
+}
+
+void read_list(clj_Reader *r, wint_t initch) {
+  read_delimited(CLJ_LIST, r, L')');
+}
+
+void read_vector(clj_Reader *r, wint_t initch) {
+  read_delimited(CLJ_VECTOR, r, L']');
+}
+
+void read_map(clj_Reader *r, wint_t initch) {
+  read_delimited(CLJ_MAP, r, L'}');
+}
+
+void read_set(clj_Reader *r, wint_t initch) {
+  read_delimited(CLJ_SET, r, L'}');
+}
+
+void read_char(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_vector(clj_Reader *r) {
+void read_lambda_arg(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_map(clj_Reader *r) {
+void read_dispatch(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
-void read_char(clj_Reader *r) {
-  CLJ_NOT_IMPLEMENTED_READ
-}
-
-void read_lambda_arg(clj_Reader *r) {
-  CLJ_NOT_IMPLEMENTED_READ
-}
-
-void read_dispatch(clj_Reader *r) {
-  CLJ_NOT_IMPLEMENTED_READ
-}
-
-void not_implemented(clj_Reader *r) {
+void not_implemented(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
@@ -282,13 +291,11 @@ void read_form(clj_Reader *r) {
     if (is_clj_whitespace(c)) {
       // ignored
     } else if ((macro_reader = get_macro_reader(c))) {
-      macro_reader(r);
+      macro_reader(r, c);
     } else if (at_number(r, c)) {
-      push_char(r, c);
-      read_number(r);
+      read_number(r, c);
     } else {
-      push_char(r, c);
-      read_symbol(r);
+      read_symbol(r, c);
     }
   }
 };
@@ -307,28 +314,31 @@ clj_ReadResult clj_read(clj_Reader *r) {
 
 // Print forms
 
-void print_string(clj_Printer *printer, const wchar_t *s) {
+void print_string(clj_Printer *p, const wchar_t *s) {
   for (const wchar_t *i = s; *i != L'\0'; i++) {
-    printer->putwchar(*i);
+    p->putwchar(*i);
   };
 }
 
-int clj_print(clj_Printer *printer) {
+void print_delimited(clj_Printer *p, const wchar_t *begin, wint_t end) {
+  print_string(p, begin);
+  //p->putwchar(end);
+}
+
+int clj_print(clj_Printer *p) {
   clj_Node node;
-  printer->consume(&node);
+  p->consume(&node);
   switch (node.type) {
 
-    case CLJ_KEYWORD:
-      printer->putwchar(L':');
-      // Intentional fallthrough
     case CLJ_NUMBER:
     case CLJ_SYMBOL:
-      print_string(printer, node.value);
+    case CLJ_KEYWORD:
+      print_string(p, node.value);
       break;
 
     default:
       fatal("unexpected node type");
   }
-  printer->putwchar(L'\n');
+  p->putwchar(L'\n');
   return 0;
 }
