@@ -309,7 +309,7 @@ clj_Result read_set(clj_Reader *r, wint_t initch) {
 }
 
 clj_Result read_char(clj_Reader *r, wint_t initch) {
-  CLJ_NOT_IMPLEMENTED_READ
+  return read_token(CLJ_CHARACTER, r, initch);
 }
 
 clj_Result read_lambda_arg(clj_Reader *r, wint_t initch) {
@@ -317,10 +317,6 @@ clj_Result read_lambda_arg(clj_Reader *r, wint_t initch) {
 }
 
 clj_Result read_dispatch(clj_Reader *r, wint_t initch) {
-  CLJ_NOT_IMPLEMENTED_READ
-}
-
-clj_Result not_implemented(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
 
@@ -400,6 +396,7 @@ void clj_print(clj_Printer *p, const clj_Node *node) {
     case CLJ_NUMBER:
     case CLJ_SYMBOL:
     case CLJ_KEYWORD:
+    case CLJ_CHARACTER:
       print_string(p, node->value);
       break;
 
