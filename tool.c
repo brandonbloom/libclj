@@ -41,6 +41,9 @@ int main(int argc, char **argv) {
     case CLJ_NOT_IMPLEMENTED:
       print_reader_error(&reader, "unsupported form");
       break;
+    case CLJ_UNREADABLE:
+      print_reader_error(&reader, "unreadable form");
+      break;
     default:
       print_reader_error(&reader, "unexpected error");
     }

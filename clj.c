@@ -339,7 +339,8 @@ clj_Result read_lambda_arg(clj_Reader *r, wint_t initch) {
 }
 
 clj_Result read_unreadable(clj_Reader *r, wint_t initch) {
-  CLJ_NOT_IMPLEMENTED_READ
+  reader_error(r, CLJ_UNREADABLE);
+  return 0;
 }
 
 clj_Result read_regex(clj_Reader *r, wint_t initch) {

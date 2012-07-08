@@ -14,6 +14,7 @@ typedef enum clj_result {
   CLJ_UNEXPECTED_EOF      = -1,
   CLJ_UNMATCHED_DELIMITER = -2,
   CLJ_NOT_IMPLEMENTED     = -3,
+  CLJ_UNREADABLE          = -4,
 } clj_Result;
 
 //typedef struct clj_named {
