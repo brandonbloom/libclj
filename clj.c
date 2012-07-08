@@ -312,24 +312,24 @@ clj_Result read_dispatch(clj_Reader *r, wint_t initch) {
 
 form_reader get_macro_reader(wint_t c) {
   switch (c) {
-  case L'"':  return read_string;
-  case L':':  return read_keyword;
-  case L';':  return read_comment; // never hit this
-  case L'\'': return read_quote;
-  case L'@':  return read_deref;
-  case L'^':  return read_meta;
-  case L'`':  return read_syntax_quote;
-  case L'~':  return read_unquote;
-  case L'(':  return read_list;
-  case L')':  return read_unmatched_delimiter;
-  case L'[':  return read_vector;
-  case L']':  return read_unmatched_delimiter;
-  case L'{':  return read_map;
-  case L'}':  return read_unmatched_delimiter;
-  case L'\\': return read_char;
-  case L'%':  return read_lambda_arg;
-  case L'#':  return read_dispatch;
-  default:    return 0;
+    case L'"':  return read_string;
+    case L':':  return read_keyword;
+    case L';':  return read_comment; // never hit this
+    case L'\'': return read_quote;
+    case L'@':  return read_deref;
+    case L'^':  return read_meta;
+    case L'`':  return read_syntax_quote;
+    case L'~':  return read_unquote;
+    case L'(':  return read_list;
+    case L')':  return read_unmatched_delimiter;
+    case L'[':  return read_vector;
+    case L']':  return read_unmatched_delimiter;
+    case L'{':  return read_map;
+    case L'}':  return read_unmatched_delimiter;
+    case L'\\': return read_char;
+    case L'%':  return read_lambda_arg;
+    case L'#':  return read_dispatch;
+    default:    return 0;
   }
 }
 
