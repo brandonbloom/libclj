@@ -6,11 +6,11 @@
 clj_Reader reader;
 clj_Printer printer;
 
-void print(const clj_Node *node) {
+extern void print(const clj_Node *node) {
   clj_print(&printer, node);
 }
 
-void tool_failure(clj_Reader *r, const char *msg) {
+extern void tool_failure(clj_Reader *r, const char *msg) {
   fprintf(stderr, "ERROR: %s at line %d, column %d\n",
           msg, reader.line, reader.column);
   exit(EXIT_FAILURE);
