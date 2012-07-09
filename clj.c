@@ -128,9 +128,10 @@ void reader_error(clj_Reader *r, clj_Result error) {
   longjmp(r->_fail, error);
 }
 
-void emit(clj_Reader *r, clj_Node *n) {
+void emit(clj_Reader *r, clj_Type type, const wchar_t *value) {
+  clj_Node n = {type, value};
   if (!r->_discard) {
-    r->emit(n);
+    r->emit(&n);
   }
 }
 
@@ -167,10 +168,8 @@ clj_Result read_form(clj_Reader*);
 clj_Result read_typed_string(clj_Type type, const wchar_t *prefix,
                              clj_Reader *r) {
   wint_t c;
-  clj_Node node;
   StringBuffer strbuf;
   int escape = 0;
-  node.type = type;
   strbuf_init(&strbuf, 80); // C'mon now, how big is your terminal?
   strbuf_appends(&strbuf, prefix);
   while (1) {
@@ -189,8 +188,7 @@ clj_Result read_typed_string(clj_Type type, const wchar_t *prefix,
           escape = 0;
           break;
         } else {
-          node.value = strbuf.chars;
-          emit(r, &node);
+          emit(r, type, strbuf.chars);
           strbuf_free(&strbuf);
           return CLJ_MORE;
         }
@@ -212,17 +210,14 @@ clj_Result read_regex(clj_Reader *r, wint_t initch) {
 clj_Result read_token(clj_Type type, clj_Reader *r, wint_t initch,
                       size_t initial_capacity, char_pred terminates) {
   wint_t c;
-  clj_Node node;
   StringBuffer strbuf;
-  node.type = type;
   strbuf_init(&strbuf, initial_capacity);
   strbuf_append(&strbuf, initch);
   while (1) {
     c = pop_char(r);
     if (WEOF == c || is_clj_whitespace(c) || terminates(c)) {
       push_char(r, c);
-      node.value = strbuf.chars;
-      emit(r, &node);
+      emit(r, type, strbuf.chars);
       strbuf_free(&strbuf);
       break;
     } else {
@@ -258,20 +253,11 @@ clj_Result read_comment(clj_Reader *r, wint_t initch) {
 }
 
 clj_Result read_wrapped(clj_Reader *r, const wint_t *sym) {
-  clj_Node node;
   clj_Result result;
-  // Begin list
-  node.type = CLJ_LIST;
-  emit(r, &node);
-  // Invoked form
-  node.type = CLJ_SYMBOL;
-  node.value = sym;
-  emit(r, &node);
-  // Argument
+  emit(r, CLJ_LIST, 0);
+  emit(r, CLJ_SYMBOL, sym);
   result = read_form(r);
-  // End list
-  node.type = CLJ_LIST | CLJ_END;
-  emit(r, &node);
+  emit(r, CLJ_LIST | CLJ_END, 0);
   return result;
 }
 
@@ -299,17 +285,14 @@ clj_Result read_unmatched_delimiter(clj_Reader *r, wint_t initch) {
 
 clj_Result read_delimited(clj_Type type, clj_Reader *r, wint_t terminator) {
   wint_t c;
-  clj_Node node;
   form_reader macro_reader;
-  node.type = type;
-  emit(r, &node);
+  emit(r, type, 0);
   r->_depth++;
   while (1) {
     c = skip_whitespace(r);
     if (c == terminator) {
-      node.type = type | CLJ_END;
       r->_depth--;
-      emit(r, &node);
+      emit(r, type | CLJ_END, 0);
       return CLJ_MORE;
     } else if ((macro_reader = get_macro_reader(c))) {
       macro_reader(r, c);
@@ -411,7 +394,6 @@ form_reader get_macro_reader(wint_t c) {
 
 clj_Result read_form(clj_Reader *r) {
   clj_Result result;
-  clj_Node node;
   form_reader macro_reader;
   wint_t c;
   while (WEOF != (c = pop_char(r))) {
