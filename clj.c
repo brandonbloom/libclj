@@ -284,10 +284,6 @@ clj_Result read_deref(clj_Reader *r, wint_t initch) {
   return read_wrapped(r, L"deref");
 }
 
-clj_Result read_meta(clj_Reader *r, wint_t initch) {
-  CLJ_NOT_IMPLEMENTED_READ
-}
-
 clj_Result read_syntax_quote(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
@@ -362,6 +358,11 @@ clj_Result read_discard(clj_Reader *r, wint_t initch) {
   result = read_form(r);
   r->_discard--;
   return result;
+}
+
+clj_Result read_meta(clj_Reader *r, wint_t initch) {
+  //TODO: Don't discard metadata.
+  return read_discard(r, initch);
 }
 
 form_reader get_dispatch_reader(wint_t c) {
