@@ -57,7 +57,8 @@ static void strbuf_append(StringBuffer *strbuf, wchar_t c) {
 }
 
 static void strbuf_appends(StringBuffer *strbuf, const wchar_t *s) {
-  for (const wchar_t *i = s; *i != L'\0'; i++) {
+  const wchar_t *i;
+  for (i = s; *i != L'\0'; i++) {
     strbuf_append(strbuf, *i);
   }
 }
@@ -430,7 +431,8 @@ clj_Result clj_read(clj_Reader *r) {
 // Print forms
 
 static void print_string(clj_Printer *p, const wchar_t *s) {
-  for (const wchar_t *i = s; *i != L'\0'; i++) {
+  const wchar_t *i;
+  for (i = s; *i != L'\0'; i++) {
     p->putwchar(*i);
   };
 }
