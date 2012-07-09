@@ -54,6 +54,7 @@ typedef struct clj_reader {
   int column;
   // Private
   int _depth;
+  int _discard;
   wint_t _readback;
   wint_t _readback_column;
   jmp_buf _fail;

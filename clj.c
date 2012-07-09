@@ -129,7 +129,9 @@ void reader_error(clj_Reader *r, clj_Result error) {
 }
 
 void emit(clj_Reader *r, clj_Node *n) {
-  r->emit(n);
+  if (!r->_discard) {
+    r->emit(n);
+  }
 }
 
 #define CLJ_NOT_IMPLEMENTED_READ \
@@ -355,7 +357,11 @@ clj_Result read_unreadable(clj_Reader *r, wint_t initch) {
 }
 
 clj_Result read_discard(clj_Reader *r, wint_t initch) {
-  CLJ_NOT_IMPLEMENTED_READ
+  clj_Result result;
+  r->_discard++;
+  result = read_form(r);
+  r->_discard--;
+  return result;
 }
 
 form_reader get_dispatch_reader(wint_t c) {
@@ -429,6 +435,7 @@ clj_Result clj_read(clj_Reader *r) {
   r->line = 1;
   r->column = 0;
   r->_depth = 0;
+  r->_discard = 0;
   r->_readback = 0;
   if ((error = setjmp(r->_fail))) {
     return error;
