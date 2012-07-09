@@ -58,6 +58,12 @@ void strbuf_append(StringBuffer *strbuf, wchar_t c) {
   strbuf->chars[strbuf->length] = L'\0';
 }
 
+void strbuf_appends(StringBuffer *strbuf, const wchar_t *s) {
+  for (const wchar_t *i = s; *i != L'\0'; i++) {
+    strbuf_append(strbuf, *i);
+  }
+}
+
 void strbuf_free(StringBuffer *strbuf) {
   free(strbuf->chars);
 };
@@ -160,14 +166,15 @@ clj_Result ok_read(wint_t c) {
 
 clj_Result read_form(clj_Reader*);
 
-clj_Result read_string(clj_Reader *r, wint_t initch) {
+clj_Result read_typed_string(clj_Type type, const wchar_t *prefix,
+                             clj_Reader *r) {
   wint_t c;
   clj_Node node;
   StringBuffer strbuf;
   int escape = 0;
-  node.type = CLJ_STRING;
+  node.type = type;
   strbuf_init(&strbuf, 80); // C'mon now, how big is your terminal?
-  strbuf_append(&strbuf, initch);
+  strbuf_appends(&strbuf, prefix);
   while (1) {
     c = pop_char(r);
     switch (c) {
@@ -194,6 +201,14 @@ clj_Result read_string(clj_Reader *r, wint_t initch) {
         strbuf_append(&strbuf, c);
     }
   }
+}
+
+clj_Result read_string(clj_Reader *r, wint_t initch) {
+  return read_typed_string(CLJ_STRING, L"\"", r);
+}
+
+clj_Result read_regex(clj_Reader *r, wint_t initch) {
+  return read_typed_string(CLJ_REGEX, L"#\"", r);
 }
 
 clj_Result read_token(clj_Type type, clj_Reader *r, wint_t initch,
@@ -343,10 +358,6 @@ clj_Result read_unreadable(clj_Reader *r, wint_t initch) {
   return 0;
 }
 
-clj_Result read_regex(clj_Reader *r, wint_t initch) {
-  CLJ_NOT_IMPLEMENTED_READ
-}
-
 clj_Result read_discard(clj_Reader *r, wint_t initch) {
   CLJ_NOT_IMPLEMENTED_READ
 }
@@ -447,6 +458,7 @@ void clj_print(clj_Printer *p, const clj_Node *node) {
 
     case CLJ_NUMBER:
     case CLJ_STRING:
+    case CLJ_REGEX:
     case CLJ_SYMBOL:
     case CLJ_KEYWORD:
     case CLJ_CHARACTER:

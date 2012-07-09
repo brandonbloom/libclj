@@ -30,6 +30,7 @@ typedef enum clj_type {
   CLJ_STRING    = 0x03,
   CLJ_KEYWORD   = 0x04,
   CLJ_SYMBOL    = 0x05,
+  CLJ_REGEX     = 0x06,
   // Composites
   CLJ_MAP        = 0x010,
   CLJ_LIST       = 0x020,
