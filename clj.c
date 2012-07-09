@@ -128,12 +128,8 @@ void reader_error(clj_Reader *r, clj_Result error) {
   longjmp(r->_fail, error);
 }
 
-// Emits a node which demarks a complete object (ie. not a begin bracket)
-void emit_complete(clj_Reader *r, clj_Node *n) {
+void emit(clj_Reader *r, clj_Node *n) {
   r->emit(n);
-  if (r->_depth == 0) {
-    r->_depth = -1;
-  }
 }
 
 #define CLJ_NOT_IMPLEMENTED_READ \
@@ -192,7 +188,7 @@ clj_Result read_typed_string(clj_Type type, const wchar_t *prefix,
           break;
         } else {
           node.value = strbuf.chars;
-          emit_complete(r, &node);
+          emit(r, &node);
           strbuf_free(&strbuf);
           return CLJ_MORE;
         }
@@ -224,7 +220,7 @@ clj_Result read_token(clj_Type type, clj_Reader *r, wint_t initch,
     if (WEOF == c || is_clj_whitespace(c) || terminates(c)) {
       push_char(r, c);
       node.value = strbuf.chars;
-      emit_complete(r, &node);
+      emit(r, &node);
       strbuf_free(&strbuf);
       break;
     } else {
@@ -264,16 +260,16 @@ clj_Result read_wrapped(clj_Reader *r, const wint_t *sym) {
   clj_Result result;
   // Begin list
   node.type = CLJ_LIST;
-  r->emit(&node);
+  emit(r, &node);
   // Invoked form
   node.type = CLJ_SYMBOL;
   node.value = sym;
-  r->emit(&node);
+  emit(r, &node);
   // Argument
   result = read_form(r);
   // End list
   node.type = CLJ_LIST | CLJ_END;
-  emit_complete(r, &node);
+  emit(r, &node);
   return result;
 }
 
@@ -308,14 +304,14 @@ clj_Result read_delimited(clj_Type type, clj_Reader *r, wint_t terminator) {
   clj_Node node;
   form_reader macro_reader;
   node.type = type;
-  r->emit(&node);
+  emit(r, &node);
   r->_depth++;
   while (1) {
     c = skip_whitespace(r);
     if (c == terminator) {
       node.type = type | CLJ_END;
       r->_depth--;
-      emit_complete(r, &node);
+      emit(r, &node);
       return CLJ_MORE;
     } else if ((macro_reader = get_macro_reader(c))) {
       macro_reader(r, c);
@@ -415,10 +411,7 @@ clj_Result read_form(clj_Reader *r) {
     if (is_clj_whitespace(c)) {
       continue;
     } else if ((macro_reader = get_macro_reader(c))) {
-      result = macro_reader(r, c);
-      if (r->_depth == -1) {
-        return result;
-      }
+      return macro_reader(r, c);
     } else if (at_number(r, c)) {
       return read_number(r, c);
     } else {

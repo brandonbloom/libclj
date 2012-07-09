@@ -53,7 +53,7 @@ typedef struct clj_reader {
   int line;
   int column;
   // Private
-  int _depth; // composite type nesting depth, but uses -1 as "got a top-level"
+  int _depth;
   wint_t _readback;
   wint_t _readback_column;
   jmp_buf _fail;

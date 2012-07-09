@@ -6,19 +6,20 @@
 clj_Reader reader;
 clj_Printer printer;
 
-void emit(const clj_Node *node) {
+void print(const clj_Node *node) {
   clj_print(&printer, node);
 }
 
-void print_reader_error(clj_Reader *r, const char *msg) {
+void tool_failure(clj_Reader *r, const char *msg) {
   fprintf(stderr, "ERROR: %s at line %d, column %d\n",
           msg, reader.line, reader.column);
+  exit(EXIT_FAILURE);
 }
 
 int main(int argc, char **argv) {
   clj_Result result;
 
-  reader.emit = emit;
+  reader.emit = print;
 
   // Connect stdin to stdout.
   reader.getwchar = getwchar;
@@ -33,20 +34,15 @@ int main(int argc, char **argv) {
     case CLJ_EOF:
       return EXIT_SUCCESS;
     case CLJ_UNEXPECTED_EOF:
-      print_reader_error(&reader, "unexpected end of file");
-      break;
+      tool_failure(&reader, "unexpected end of file");
     case CLJ_UNMATCHED_DELIMITER:
-      print_reader_error(&reader, "unmatched delimiter");
-      break;
+      tool_failure(&reader, "unmatched delimiter");
     case CLJ_NOT_IMPLEMENTED:
-      print_reader_error(&reader, "unsupported form");
-      break;
+      tool_failure(&reader, "unsupported form");
     case CLJ_UNREADABLE:
-      print_reader_error(&reader, "unreadable form");
-      break;
+      tool_failure(&reader, "unreadable form");
     default:
-      print_reader_error(&reader, "unexpected error");
+      tool_failure(&reader, "unexpected error");
     }
-    return EXIT_FAILURE;
   }
 }
