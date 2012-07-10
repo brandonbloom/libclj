@@ -287,11 +287,11 @@ static clj_Result read_delimited(clj_Type type, clj_Reader *r,
   wint_t c;
   form_reader macro_reader;
   emit(r, type, 0);
-  r->_depth++;
+  r->depth++;
   while (1) {
     c = skip_whitespace(r);
     if (c == terminator) {
-      r->_depth--;
+      r->depth--;
       emit(r, type | CLJ_END, 0);
       return CLJ_MORE;
     } else if ((macro_reader = get_macro_reader(c))) {
@@ -407,7 +407,7 @@ static clj_Result read_form(clj_Reader *r) {
       return read_symbol(r, c);
     }
   }
-  if (r->_depth > 0) {
+  if (r->depth > 0) {
     reader_error(r, CLJ_UNEXPECTED_EOF);
   }
   return CLJ_EOF;
@@ -417,7 +417,7 @@ clj_Result clj_read(clj_Reader *r) {
   clj_Result error;
   r->line = 1;
   r->column = 0;
-  r->_depth = 0;
+  r->depth = 0;
   r->_discard = 0;
   r->_readback = 0;
   if ((error = setjmp(r->_fail))) {

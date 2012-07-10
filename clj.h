@@ -53,8 +53,8 @@ typedef struct clj_reader {
   // Read-only
   int line;
   int column;
+  int depth;
   // Private
-  int _depth;
   int _discard;
   wint_t _readback;
   wint_t _readback_column;
