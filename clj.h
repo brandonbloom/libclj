@@ -47,8 +47,9 @@ typedef struct clj_node {
 
 typedef struct clj_reader {
   // Read/write
-  wint_t (*getwchar)(void);
-  void (*emit)(const clj_Node*);
+  wint_t (*getwchar)(const struct clj_reader*);
+  void (*emit)(const struct clj_reader*, const clj_Node*);
+  void *data;
   // Read-only
   int line;
   int column;

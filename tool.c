@@ -6,8 +6,8 @@
 clj_Reader reader;
 clj_Printer printer;
 
-extern void print(const clj_Node *node) {
-  clj_print(&printer, node);
+extern void print(const clj_Reader *r, const clj_Node *n) {
+  clj_print(&printer, n);
 }
 
 extern void tool_failure(clj_Reader *r, const char *msg) {

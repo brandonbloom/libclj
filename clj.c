@@ -88,7 +88,7 @@ static int ends_line(wint_t c) {
 static wint_t pop_char(clj_Reader *r) {
   wint_t c;
   if (r->_readback == 0) {
-    c = r->getwchar();
+    c = r->getwchar(r);
   } else {
     c = r->_readback;
     r->_readback = 0;
@@ -127,10 +127,10 @@ static void reader_error(clj_Reader *r, clj_Result error) {
   longjmp(r->_fail, error);
 }
 
-static void emit(clj_Reader *r, clj_Type type, const wchar_t *value) {
+static void emit(const clj_Reader *r, clj_Type type, const wchar_t *value) {
   clj_Node n = {type, value};
   if (!r->_discard) {
-    r->emit(&n);
+    r->emit(r, &n);
   }
 }
 
