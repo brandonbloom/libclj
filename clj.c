@@ -427,6 +427,21 @@ clj_Result clj_read(clj_Reader *r) {
   }
 }
 
+static const char *result_message(clj_Result result) {
+  switch (result) {
+    case CLJ_UNEXPECTED_EOF:      return "unexpected end of file";
+    case CLJ_UNMATCHED_DELIMITER: return "unmatched delimiter";
+    case CLJ_NOT_IMPLEMENTED:     return "unsupported form";
+    case CLJ_UNREADABLE:          return "unreadable form";
+    default:                      return "unexpected error";
+  }
+}
+
+int clj_read_error(char *str, const clj_Reader *r, clj_Result result) {
+  return sprintf(str, "%s at line %d, column %d",
+                 result_message(result), r->line, r->column);
+}
+
 
 // Print forms
 

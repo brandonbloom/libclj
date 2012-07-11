@@ -63,6 +63,8 @@ typedef struct clj_reader {
 
 clj_Result clj_read(clj_Reader*);
 
+int clj_read_error(char*, const clj_Reader*, clj_Result);
+
 typedef struct clj_printer {
   wint_t (*putwchar)(wchar_t c);
   //TODO: line/column/depth
