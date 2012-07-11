@@ -17,6 +17,8 @@ typedef enum clj_result {
   CLJ_UNREADABLE          = -4,
 } clj_Result;
 
+int clj_is_error(clj_Result result);
+
 //typedef struct clj_named {
 //  const wchar_t *ns;
 //  const wchar_t *name;

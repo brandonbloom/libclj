@@ -26,6 +26,10 @@ static void *xrealloc(void *ptr, size_t size) {
   return value;
 }
 
+int clj_is_error(clj_Result result) {
+  return result <= 0;
+}
+
 
 // String Buffer
 
