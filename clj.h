@@ -25,22 +25,28 @@ int clj_is_error(clj_Result result);
 //} clj_Named;
 
 typedef enum clj_type {
-  CLJ_ERROR = -1,
-  // Atomic values
-  CLJ_NUMBER    = 0x01,
-  CLJ_CHARACTER = 0x02,
-  CLJ_STRING    = 0x03,
-  CLJ_KEYWORD   = 0x04,
-  CLJ_SYMBOL    = 0x05,
-  CLJ_REGEX     = 0x06,
-  // Composites
-  CLJ_MAP        = 0x010,
-  CLJ_LIST       = 0x020,
-  CLJ_SET        = 0x030,
-  CLJ_VECTOR     = 0x040,
-  // Pop collection bit flag
-  CLJ_END        = 0x100,
+  // Flags
+  CLJ_ATOMIC    = 0x0100,
+  CLJ_COMPOSITE = 0x0200,
+  CLJ_END       = 0x1000,
+  // Atomic types
+  CLJ_NUMBER    = 0x0101,
+  CLJ_CHARACTER = 0x0102,
+  CLJ_STRING    = 0x0103,
+  CLJ_KEYWORD   = 0x0104,
+  CLJ_SYMBOL    = 0x0105,
+  CLJ_REGEX     = 0x0106,
+  // Composite types
+  CLJ_MAP       = 0x0201,
+  CLJ_LIST      = 0x0202,
+  CLJ_SET       = 0x0203,
+  CLJ_VECTOR    = 0x0204,
 } clj_Type;
+
+int clj_is_atomic(clj_Type type);
+int clj_is_composite(clj_Type type);
+int clj_is_begin(clj_Type type);
+int clj_is_end(clj_Type type);
 
 typedef struct clj_node {
   clj_Type type;

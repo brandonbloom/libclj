@@ -72,6 +72,26 @@ static void strbuf_free(StringBuffer *strbuf) {
 };
 
 
+// Type predicates
+
+int clj_is_atomic(clj_Type type) {
+  return type & CLJ_ATOMIC;
+}
+
+int clj_is_composite(clj_Type type) {
+  return type & CLJ_COMPOSITE;
+}
+
+int clj_is_end(clj_Type type) {
+  return type & CLJ_END;
+}
+
+int clj_is_begin(clj_Type type) {
+  return clj_is_composite(type) && !clj_is_end(type);
+}
+
+
+
 // Character classification
 
 static int is_clj_whitespace(wint_t c) {
