@@ -35,18 +35,18 @@ int clj_is_error(clj_Result result) {
 
 typedef struct string_buffer {
   wchar_t *chars;
-  int length;
-  int capacity;
+  size_t length;
+  size_t capacity;
 } StringBuffer;
 
-static void strbuf_init(StringBuffer *strbuf, int capacity) {
+static void strbuf_init(StringBuffer *strbuf, size_t capacity) {
   strbuf->chars = xmalloc(sizeof(wchar_t) * (capacity + 1));
   strbuf->chars[0] = L'\0';
   strbuf->length = 0;
   strbuf->capacity = capacity;
 }
 
-static void strbuf_resize(StringBuffer *strbuf, int capacity) {
+static void strbuf_resize(StringBuffer *strbuf, size_t capacity) {
   strbuf->chars = xrealloc(strbuf->chars, sizeof(wchar_t) * (capacity + 1));
   strbuf->capacity = capacity;
 }
