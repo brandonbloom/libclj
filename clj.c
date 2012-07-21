@@ -277,10 +277,10 @@ static clj_Result read_comment(clj_Reader *r, wint_t initch) {
 
 static clj_Result read_wrapped(clj_Reader *r, const wint_t *sym) {
   clj_Result result;
-  emit(r, CLJ_LIST, 0);
+  emit(r, CLJ_LIST, L"(");
   emit(r, CLJ_SYMBOL, sym);
   result = read_form(r);
-  emit(r, CLJ_LIST | CLJ_END, 0);
+  emit(r, CLJ_LIST | CLJ_END, L")");
   return result;
 }
 
@@ -307,16 +307,17 @@ static clj_Result read_unmatched_delimiter(clj_Reader *r, wint_t initch) {
 }
 
 static clj_Result read_delimited(clj_Type type, clj_Reader *r,
-                                 wint_t terminator) {
+                                 const wchar_t *begin, wint_t terminator) {
   wint_t c;
+  const wchar_t end[] = {terminator, L'\0'};
   form_reader macro_reader;
-  emit(r, type, 0);
+  emit(r, type, begin);
   r->depth++;
   while (1) {
     c = skip_whitespace(r);
     if (c == terminator) {
       r->depth--;
-      emit(r, type | CLJ_END, 0);
+      emit(r, type | CLJ_END, end);
       return CLJ_MORE;
     } else if ((macro_reader = get_macro_reader(c))) {
       macro_reader(r, c);
@@ -330,19 +331,19 @@ static clj_Result read_delimited(clj_Type type, clj_Reader *r,
 }
 
 static clj_Result read_list(clj_Reader *r, wint_t initch) {
-  return read_delimited(CLJ_LIST, r, L')');
+  return read_delimited(CLJ_LIST, r, L"(", L')');
 }
 
 static clj_Result read_vector(clj_Reader *r, wint_t initch) {
-  return read_delimited(CLJ_VECTOR, r, L']');
+  return read_delimited(CLJ_VECTOR, r, L"[", L']');
 }
 
 static clj_Result read_map(clj_Reader *r, wint_t initch) {
-  return read_delimited(CLJ_MAP, r, L'}');
+  return read_delimited(CLJ_MAP, r, L"{", L'}');
 }
 
 static clj_Result read_set(clj_Reader *r, wint_t initch) {
-  return read_delimited(CLJ_SET, r, L'}');
+  return read_delimited(CLJ_SET, r, L"#{", L'}');
 }
 
 static clj_Result read_char(clj_Reader *r, wint_t initch) {
